@@ -27,8 +27,31 @@ target/
 .DS_Store
 
 # Python
-.venv/
+venv/
 **/__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+*.egg
+
+# Java / Gradle
+kvstore/build/
+kvstore/.gradle/
+kvstore/bin/
+*.class
+*.jar
+*.war
+
+# P language / C# / .NET
+pmodel/**/Generated/
+pmodel/**/Output/
+pmodel/**/*.dll
+*.suo
+*.user
+obj/
+
+# Misc
+*.log
 
 # Project-specific
 ycsb/

@@ -6,58 +6,63 @@ default:
 
 # install extra dependencies of your KV code
 deps:
-    # FIXME: your dependency installation commands here
+    # No extra dependencies needed - Gradle handles everything
 
 # build your executables in release mode
 build:
-    # FIXME: your build commands here (don't include clean)
+    cd kvstore && gradle build
 
 # clean the build of your executables
 clean:
-    # FIXME: your clean commands here
+    cd kvstore && gradle clean
 
 # run your KV store server
 server listen="0.0.0.0:3777":
-    # FIXME: your server run command here, listening on addr for new clients
+    cd kvstore && gradle runServer --args="{{listen}}" --console=plain -q
 
 # run you KV store client in stdin/out interface mode
 client server="127.0.0.1:3777":
-    # FIXME: your client run command here, connecting to server at addr
+    cd kvstore && gradle runClient --args="{{server}}" --console=plain -q
 
-# run your KV store testcase 1 client
+# Test 1(single client): PUT, GET, SWAP, DELETE, SCAN on sorted keys, overwrite, missing-key edges
 test1 server="127.0.0.1:3777":
-    # FIXME: your testcase 1 client run command here
-    #        for testcases, feel free to reuse 'just p1::client' if you
-    #        designed your clients this way, or invoke different executables
+    printf 'PUT apple 1\nPUT banana 2\nPUT cherry 3\nPUT date 4\nGET apple\nGET banana\nGET missing\nSWAP banana 20\nGET banana\nSWAP ghost val\nGET ghost\nDELETE cherry\nDELETE cherry\nGET cherry\nPUT apple 100\nGET apple\nSCAN apple date\nSCAN banana ghost\nSCAN z zz\nSTOP\n' \
+        | just p1::client "{{server}}"
 
-# run your KV store testcase 2 client
+# Test 2(single client): lexicographic ordering in SCAN, single-key SCAN, overwrite chain, empty ranges
 test2 server="127.0.0.1:3777":
-    # FIXME: your testcase 2 client run command here
+    printf 'PUT k01 v1\nPUT k02 v2\nPUT k03 v3\nPUT k04 v4\nPUT k05 v5\nPUT k03 UPDATED\nSCAN k01 k05\nSCAN k03 k03\nSCAN k06 k09\nDELETE k02\nDELETE k04\nSCAN k01 k05\nGET k02\nGET k04\nGET k03\nSTOP\n' \
+        | just p1::client "{{server}}"
 
-# run your KV store testcase 3 client
+# Test 3(concurrent, no conflicts): 2 clients on disjoint key spaces
 test3 server="127.0.0.1:3777":
-    # FIXME: your testcase 3 client run command here
+    printf 'PUT a_1 alpha\nPUT a_2 beta\nGET a_1\nGET a_2\nSWAP a_1 ALPHA\nGET a_1\nSCAN a_1 a_2\nDELETE a_2\nGET a_2\nSTOP\n' \
+        | just p1::client "{{server}}" &
+    printf 'PUT b_1 one\nPUT b_2 two\nPUT b_3 three\nGET b_1\nGET b_3\nDELETE b_2\nGET b_2\nSCAN b_1 b_3\nSTOP\n' \
+        | just p1::client "{{server}}" &
 
-# run your KV store testcase 4 client(s)
+# Test 4(concurrent, conflicting): 2 clients racing on shared keys 
 test4 server="127.0.0.1:3777":
-    # FIXME: your testcase 4 client(s) run commands here
-    #        for multi-client testcases, this recipe should run multiple
-    #        concurrent client processes; you may write an additional runner
-    #        utility or a scripting layer to manage multiple processes
+    printf 'PUT shared x1\nGET shared\nSWAP shared x2\nGET shared\nPUT counter c1\nSWAP counter c2\nGET counter\nGET shared\nSTOP\n' \
+        | just p1::client "{{server}}" &
+    printf 'PUT shared y1\nGET shared\nSWAP shared y2\nGET shared\nPUT counter d1\nSWAP counter d2\nGET counter\nGET shared\nSTOP\n' \
+        | just p1::client "{{server}}" &
 
-# run your KV store testcase 5 client(s)
+# Test 5(concurrent, conflicting): 3 clients — write/delete/scan race 
 test5 server="127.0.0.1:3777":
-    # FIXME: your testcase 5 client(s) run commands here
+    printf 'PUT r_1 w1\nPUT r_2 w2\nPUT r_3 w3\nPUT r_4 w4\nPUT r_5 w5\nSTOP\n' \
+        | just p1::client "{{server}}" &
+    printf 'DELETE r_2\nDELETE r_4\nPUT r_3 OVERWRITE\nSWAP r_1 SWAPPED\nSTOP\n' \
+        | just p1::client "{{server}}" &
+    printf 'SCAN r_1 r_5\nGET r_1\nGET r_2\nGET r_3\nGET r_4\nGET r_5\nSTOP\n' \
+        | just p1::client "{{server}}" &
 
 # kill all processes of your KV store system
 kill:
-    # FIXME: your kill commands here
-    #        make sure that it kills all server, clients, and any extra helper
-    #        processes of your system; redirecting both out & err to /dev/null
-    #        is recommended
-    #   TIP: commands such as 'pkill' may return non-zero exit code on success,
-    #        which would by default abort the 'just' recipe early; prepend the
-    #        command with a '-' sign to ignore its exit code
+    -pkill -f 'KVServer' 2>/dev/null || true
+    -pkill -f 'KVClient' 2>/dev/null || true
+    -pkill -f 'gradle.*runServer' 2>/dev/null || true
+    -pkill -f 'gradle.*runClient' 2>/dev/null || true
 
 # NOTE: feel free to add more recipes as you see fit...
 #       also feel free to add extra parameters to the recipes as you see fit,

@@ -1,0 +1,60 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "grpc";
+option java_outer_classname = "KVStoreProto";
+
+service KVStore {
+  rpc Put(PutRequest) returns (PutResponse);
+  rpc Get(GetRequest) returns (GetResponse);
+  rpc Delete(DeleteRequest) returns (DeleteResponse);
+  rpc Swap(SwapRequest) returns (SwapResponse);
+  rpc Scan(ScanRequest) returns (stream ScanResponse);
+}
+
+message PutRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message PutResponse {
+  bool found = 1;  
+}
+
+message SwapRequest {
+  string key = 1;
+  string value = 2;
+}
+
+message SwapResponse {
+  bool found = 1;           
+  string old_value = 2;    
+}
+
+message GetRequest {
+  string key = 1;
+}
+
+message GetResponse {
+  bool found = 1;      
+  string value = 2;     
+}
+
+message DeleteRequest {
+  string key = 1;
+}
+
+
+message DeleteResponse {
+  bool found = 1;  
+}
+
+message ScanRequest {
+  string start_key = 1;  
+  string end_key = 2;   
+}
+
+message ScanResponse {
+  string key = 1;
+  string value = 2;
+}
