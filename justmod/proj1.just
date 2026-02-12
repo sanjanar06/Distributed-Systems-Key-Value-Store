@@ -22,7 +22,7 @@ server listen="0.0.0.0:3777":
 
 # run you KV store client in stdin/out interface mode
 client server="127.0.0.1:3777":
-    cd kvstore && ./gradlew runClient --args="{{server}}" --console=plain -q
+    cd kvstore && java -cp "$(./gradlew -q printClasspath)" KVClient {{server}}
 
 # Test 1(single client): PUT, GET, SWAP, DELETE, SCAN on sorted keys, overwrite, missing-key edges
 test1 server="127.0.0.1:3777":

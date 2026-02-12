@@ -39,4 +39,11 @@ task runClient(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'KVClient'
     standardInput = System.in
+    standardOutput = System.out
+}
+
+task printClasspath {
+    doLast {
+        println sourceSets.main.runtimeClasspath.asPath
+    }
 }
