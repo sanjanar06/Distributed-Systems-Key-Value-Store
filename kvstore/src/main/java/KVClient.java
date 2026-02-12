@@ -45,6 +45,7 @@ public class KVClient {
         } else {
             System.out.println("PUT " + key + " not_found");
         }
+        System.out.flush();
     }
 
     public void get(String key) {
@@ -59,6 +60,7 @@ public class KVClient {
         } else {
             System.out.println("GET " + key + " null");
         }
+        System.out.flush();
     }
     
     public void delete(String key) {
@@ -73,6 +75,7 @@ public class KVClient {
         } else {
             System.out.println("DELETE " + key + " not_found");
         }
+        System.out.flush();
     }
     
     public void swap(String key, String value) {
@@ -88,6 +91,7 @@ public class KVClient {
         } else {
             System.out.println("SWAP " + key + " null");
         }
+        System.out.flush();
     }
     
     public void scan(String startKey, String endKey) {
@@ -106,6 +110,7 @@ public class KVClient {
         }
         
         System.out.println("SCAN END");
+        System.out.flush();
     }
     
     public static void main(String[] args) throws InterruptedException {
