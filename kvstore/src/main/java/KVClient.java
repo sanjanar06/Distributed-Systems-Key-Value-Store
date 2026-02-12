@@ -163,6 +163,7 @@ public class KVClient {
                             break;
                         case "STOP":
                             System.out.println("STOP");
+                            System.out.flush();
                             return;
                         default:
                             break;
