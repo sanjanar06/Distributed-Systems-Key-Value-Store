@@ -136,37 +136,36 @@ public class KVClient {
                     String command = parts[0].toUpperCase();
                     
                     switch (command) {
-                        case "PUT" -> {
+                        case "PUT":
                             if (parts.length >= 3) {
                                 client.put(parts[1], parts[2]);
                             }
-                        }
-                        case "GET" -> {
+                            break;
+                        case "GET":
                             if (parts.length >= 2) {
                                 client.get(parts[1]);
                             }
-                        }
-                        case "DELETE" -> {
+                            break;
+                        case "DELETE":
                             if (parts.length >= 2) {
                                 client.delete(parts[1]);
                             }
-                        }
-                        case "SWAP" -> {
+                            break;
+                        case "SWAP":
                             if (parts.length >= 3) {
                                 client.swap(parts[1], parts[2]);
                             }
-                        }
-                        case "SCAN" -> {
+                            break;
+                        case "SCAN":
                             if (parts.length >= 3) {
                                 client.scan(parts[1], parts[2]);
                             }
-                        }
-                        case "STOP" -> {
+                            break;
+                        case "STOP":
                             System.out.println("STOP");
                             return;
-                        }
-                        default -> {
-                        }
+                        default:
+                            break;
                     }
                 }
             }
