@@ -1,5 +1,6 @@
 import java.io.IOException;
 import java.util.concurrent.ConcurrentSkipListMap;
+import java.util.concurrent.Executors;
 
 import grpc.DeleteRequest;
 import grpc.DeleteResponse;
@@ -32,9 +33,10 @@ public class KVServer {
         }
         
         Server server = ServerBuilder
-                .forPort(port)                      
-                .addService(new KVStoreService())   
-                .build();                           
+                .forPort(port)
+                .addService(new KVStoreService())
+                .executor(Executors.newCachedThreadPool()) 
+                .build();                         
         
         server.start();
         System.err.println("Server started on port " + port);
