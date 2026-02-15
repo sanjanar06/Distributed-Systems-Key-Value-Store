@@ -1,24 +1,35 @@
+
 import subprocess
 import time
-import signal
 
-SERVER_ADDR = "127.0.0.1:3777"
-SERVER_CMD = ["just", "p1::service", "0.0.0.0:3777"]
+# SSH details for node 0 (server) and node 1 (client)
+NODE0 = "user@node0"  # Replace with your actual username and hostname/IP for node 0
+NODE1 = "user@node1"  # Replace with your actual username and hostname/IP for node 1
 
-def run_with_server(cmd):
-    print(f"Starting server: {' '.join(SERVER_CMD)}")
-    server_proc = subprocess.Popen(SERVER_CMD)
+SERVER_ADDR = "node0:3777"  # Use node0's hostname or IP
+SERVER_CMD = "just p1::service 0.0.0.0:3777"
+
+def run_with_server(client_cmd):
+    print(f"Starting server on {NODE0}: {SERVER_CMD}")
+    # Start server on node 0 via SSH (in background)
+    server_ssh_cmd = [
+        "ssh", NODE0, f"nohup {SERVER_CMD} > server.log 2>&1 & echo $!"
+    ]
+    server_proc = subprocess.run(server_ssh_cmd, capture_output=True, text=True)
+    server_pid = server_proc.stdout.strip()
+    print(f"Server PID on node0: {server_pid}")
     time.sleep(2)  # Wait for server to start
+
     try:
-        print(f"Running: {cmd}")
-        subprocess.run(cmd, shell=True, check=True)
+        print(f"Running client on {NODE1}: {client_cmd}")
+        client_ssh_cmd = [
+            "ssh", NODE1, client_cmd
+        ]
+        subprocess.run(client_ssh_cmd, check=True)
     finally:
-        print("Killing server...")
-        server_proc.terminate()
-        try:
-            server_proc.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            server_proc.kill()
+        print("Killing server on node0...")
+        kill_cmd = f"kill {server_pid}"
+        subprocess.run(["ssh", NODE0, kill_cmd])
         time.sleep(1)
 
 # Testcases
