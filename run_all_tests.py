@@ -23,23 +23,33 @@ def ensure_classpath():
 
 def manage_remote_server():
     """Remotely kills any old server and starts a fresh one on Node 0."""
-    print(f"[SERVER] Restarting server on {NODE0_SSH}...")
+    print(f"[SERVER] Cleaning up Node 0...")
+    # 1. Kill old server processes
+    subprocess.run(f"ssh {NODE0_SSH} 'pkill -f KVServer || true'", shell=True, capture_output=True)
     
-    # 1. Kill old server processes on Node 0
-    kill_cmd = f"ssh {NODE0_SSH} 'pkill -f KVServer || true'"
-    subprocess.run(kill_cmd, shell=True, capture_output=True)
-    
-    # 2. Start the server in the background using nohup
-    # We use 'bash -lc' to ensure the remote environment (just, java) is loaded
+    print(f"[SERVER] Starting fresh server...")
+    # 2. Start the server (using nohup so it lives after SSH disconnects)
     start_cmd = (
         f"ssh {NODE0_SSH} \"nohup bash -lc 'cd {REPO_NAME} && just p1::service 0.0.0.0:3777' "
         f"> server_log.out 2>&1 &\""
     )
     subprocess.run(start_cmd, shell=True)
     
-    # 3. Wait for the server to bind to the port and initialize
-    print("[SERVER] Waiting 10s for fresh initialization...")
-    time.sleep(10)
+    # 3. CRITICAL: Wait for the port to actually open
+    print("[SERVER] Waiting for port 3777 to open...")
+    max_retries = 15
+    for i in range(max_retries):
+        # Check if the port is listening on the remote node
+        check_port = f"ssh {NODE0_SSH} 'nc -z localhost 3777' && echo 'OPEN' || echo 'CLOSED'"
+        status = subprocess.check_output(check_port, shell=True, text=True).strip()
+        
+        if "OPEN" in status:
+            print(f"[SERVER] Server is UP on try {i+1}!")
+            return
+        time.sleep(1) # Wait 1 second before retrying
+    
+    print("[ERROR] Server failed to start within 15 seconds.")
+    exit(1)
 
 def run_recipe(recipe_cmd):
     """Automates server restart on Node 0 then runs the client recipe on Node 1."""
