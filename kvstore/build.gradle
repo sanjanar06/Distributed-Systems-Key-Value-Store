@@ -34,3 +34,9 @@ task runServer(type: JavaExec) {
     classpath = sourceSets.main.runtimeClasspath
     mainClass = 'KVServer'
 }
+
+task printClasspath {
+    doLast {
+        println sourceSets.main.runtimeClasspath.asPath
+    }
+}
