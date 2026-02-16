@@ -9,7 +9,8 @@ deps:
     if ! command -v java >/dev/null 2>&1; then \
         sudo apt-get update && sudo apt-get install -y openjdk-17-jdk; \
     fi
-    if [ -z "$JAVA_HOME" ]; then \
+    # The :- syntax prevents the "parameter not set" error
+    if [ -z "${JAVA_HOME:-}" ]; then \
         export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; \
         echo 'export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"' >> ~/.bashrc; \
         echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bashrc; \
