@@ -18,7 +18,7 @@ deps:
 
 # build your executables in release mode
 build:
-    cd kvstore && chmod +x gradlew && ./gradlew build
+    cd kvstore && chmod +x gradlew && ./gradlew build && ./gradlew -q printClasspath > .classpath
 
 # clean the build of your executables
 clean:
@@ -30,7 +30,7 @@ server listen="0.0.0.0:3777":
 
 # run you KV store client in stdin/out interface mode
 client server="127.0.0.1:3777":
-    java -Xmx128m -cp "$(cat .classpath)" KVClient {{server}}
+    java -Xmx128m -cp "$(cat kvstore/.classpath)" KVClient {{server}}
 
 # Test 1(single client): PUT, GET, SWAP, DELETE, SCAN on sorted keys, overwrite, missing-key edges
 test1 server="127.0.0.1:3777":
