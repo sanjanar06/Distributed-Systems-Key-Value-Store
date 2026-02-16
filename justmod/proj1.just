@@ -9,7 +9,6 @@ deps:
     # Install Java if not present
     if ! command -v java >/dev/null 2>&1; then
         sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
-
     fi
     # Set JAVA_HOME if not set
     if [ -z "$JAVA_HOME" ]; then
