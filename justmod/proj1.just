@@ -6,16 +6,13 @@ default:
 
 # install extra dependencies of your KV code
 deps:
-    # Install Java if not present
-    if ! command -v java >/dev/null 2>&1; then
-        sudo apt-get update && sudo apt-get install -y openjdk-17-jdk
+    if ! command -v java >/dev/null 2>&1; then \
+        sudo apt-get update && sudo apt-get install -y openjdk-17-jdk; \
     fi
-    # Set JAVA_HOME if not set
-    if [ -z "$JAVA_HOME" ]; then
-        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"
-        echo 'export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"' >> ~/.bashrc
-        echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bashrc
-        source ~/.bashrc
+    if [ -z "$JAVA_HOME" ]; then \
+        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; \
+        echo 'export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"' >> ~/.bashrc; \
+        echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bashrc; \
     fi
 
 # build your executables in release mode
