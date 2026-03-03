@@ -6,42 +6,42 @@ default:
 
 # install extra dependencies of your KV code
 deps:
-    # FIXME: your dependency installation commands here
+    if ! command -v java >/dev/null 2>&1; then \
+        sudo apt-get update && sudo apt-get install -y openjdk-17-jdk; \
+    fi
+    # The :- syntax prevents the "parameter not set" error
+    if [ -z "${JAVA_HOME:-}" ]; then \
+        export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"; \
+        echo 'export JAVA_HOME="/usr/lib/jvm/java-17-openjdk-amd64"' >> ~/.bashrc; \
+        echo 'export PATH="$JAVA_HOME/bin:$PATH"' >> ~/.bashrc; \
+    fi
 
 # build your executables in release mode
 build:
-    # FIXME: your build commands here (don't include clean)
+    cd kvstore && chmod +x gradlew && ./gradlew build && ./gradlew -q printClasspath > .classpath
 
 # clean the build of your executables
 clean:
-    # FIXME: your clean commands here
+    cd kvstore && ./gradlew clean
 
 # run your KV store manager
 manager man_port="3666" servers="127.0.0.1:3777,127.0.0.1:3778,127.0.0.1:3779":
-    # FIXME: your manager run command here, listening on 0.0.0.0:man_port for
-    #        both server and client registration requests
+    java -Xmx128m -cp "$(cat kvstore/.classpath)" KVManager --man_listen 0.0.0.0:{{man_port}} --servers {{servers}}
 
 # run your KV store server
 server id="0" manager="127.0.0.1:3666" api_port="3777" backer_path="./backer.s0":
-    # FIXME: your server run command here. The server should first contact the
-    #        manager to get its assignment of key range(s). It then listens on
-    #        0.0.0.0:api_port for new clients, and stores all durable state
-    #        under backer_path
+    java -Xmx128m -cp "$(cat kvstore/.classpath)" KVServer --api_listen 0.0.0.0:{{api_port}} --manager_addr {{manager}} --server_id {{id}} --backer_path {{backer_path}}
 
 # run you KV store client in stdin/out interface mode
 client manager="127.0.0.1:3666":
-    # FIXME: your client run command here, querying manager at addr for server
-    #        registration information
+    java -Xmx128m -cp "$(cat kvstore/.classpath)" KVClient --manager_addr {{manager}}
 
 # kill all processes of your KV store system
 kill:
-    # FIXME: your kill commands here
-    #        make sure that it kills all server, clients, and any extra helper
-    #        processes of your system; redirecting both out & err to /dev/null
-    #        is recommended
-    #   TIP: commands such as 'pkill' may return non-zero exit code on success,
-    #        which would by default abort the 'just' recipe early; prepend the
-    #        command with a '-' sign to ignore its exit code
+    -pkill -f 'KVServer' 2>/dev/null || true
+    -pkill -f 'KVManager' 2>/dev/null || true
+    -pkill -f 'KVClient' 2>/dev/null || true
+    -pkill -f 'gradle.*run' 2>/dev/null || true
 
 # NOTE: feel free to add more recipes as you see fit...
 #       also feel free to add extra parameters to the recipes as you see fit,
