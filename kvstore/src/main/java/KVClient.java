@@ -69,7 +69,7 @@ public class KVClient {
 
     private KVStoreGrpc.KVStoreBlockingStub getStubForKey(String key) {
         byte[] hash = sha256.digest(key.getBytes());
-        int bucket = Math.abs(ByteBuffer.wrap(hash).getInt()) % numServers;
+        int bucket = (ByteBuffer.wrap(hash).getInt() & Integer.MAX_VALUE) % numServers;
         return serverStubs.get(bucket);
     }
 

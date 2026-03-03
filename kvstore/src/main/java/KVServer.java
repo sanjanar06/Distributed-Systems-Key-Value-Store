@@ -99,7 +99,7 @@ public class KVServer {
                 try {
                     TimeUnit.SECONDS.sleep(2);
                 } catch (Exception ignored) {
-                } // Retry indefinitely [cite: 191, 200]
+                }
             }
         }
     }
@@ -119,7 +119,7 @@ public class KVServer {
             try {
                 MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
                 byte[] hash = sha256.digest(key.getBytes());
-                int bucket = Math.abs(ByteBuffer.wrap(hash).getInt()) % totalServers;
+                int bucket = (ByteBuffer.wrap(hash).getInt() & Integer.MAX_VALUE) % totalServers;
 
                 if (bucket != serverId) {
                     throw Status.INVALID_ARGUMENT
@@ -179,32 +179,25 @@ public class KVServer {
         }
 
         @Override
-        public void delete(DeleteRequest request, StreamObserver<DeleteResponse> responseObserver) {
+        public synchronized void delete(DeleteRequest request, StreamObserver<DeleteResponse> responseObserver) {
             try {
                 checkHash(request.getKey());
-                LogEntry entry = LogEntry.newBuilder()
-                        .setDelete(request)
-                        .build();
+                LogEntry entry = LogEntry.newBuilder().setDelete(request).build();
                 wal.append(entry);
 
                 byte[] key = request.getKey().getBytes();
                 boolean found = db.get(key) != null;
                 db.delete(writeOptions, key);
 
-                responseObserver.onNext(
-                        DeleteResponse.newBuilder()
-                                .setFound(found)
-                                .build());
-
+                responseObserver.onNext(DeleteResponse.newBuilder().setFound(found).build());
             } catch (Exception e) {
                 responseObserver.onError(e);
             }
-
             responseObserver.onCompleted();
         }
 
         @Override
-        public void swap(SwapRequest request, StreamObserver<SwapResponse> responseObserver) {
+        public synchronized void swap(SwapRequest request, StreamObserver<SwapResponse> responseObserver) {
             try {
                 checkHash(request.getKey());
                 LogEntry entry = LogEntry.newBuilder()
