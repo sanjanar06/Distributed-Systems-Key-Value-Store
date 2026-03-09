@@ -191,7 +191,10 @@ public class KVClient {
                     case "DELETE": if (parts.length >= 2) client.delete(parts[1]); break;
                     case "SWAP": if (parts.length >= 3) client.swap(parts[1], parts[2]); break;
                     case "SCAN": if (parts.length >= 3) client.scan(parts[1], parts[2]); break;
-                    case "STOP": return;
+                    case "STOP": 
+    			System.out.println("STOP");
+    			System.out.flush();
+    			return;
                 }
                 System.out.flush();
             }
