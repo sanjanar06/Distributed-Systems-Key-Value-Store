@@ -26,13 +26,15 @@ import io.grpc.ManagedChannelBuilder;
 import io.grpc.StatusRuntimeException;
 
 public class KVClient {
-    private final Map<Integer, KVStoreGrpc.KVStoreBlockingStub> serverStubs = new HashMap<>();
+    private final Map<Integer, KVStoreGrpc.KVStoreBlockingStub> serverStubs = new java.util.TreeMap<>();
+    private final String managerAddr;
     private final MessageDigest sha256;
     private int numServers;
 
     public KVClient(String managerAddr) throws NoSuchAlgorithmException {
         super();
         this.sha256 = MessageDigest.getInstance("SHA-256");
+        this.managerAddr = managerAddr;
         initializeFromManager(managerAddr);
     }
 
@@ -49,6 +51,7 @@ public class KVClient {
                 PartitionResponse response = managerStub.getPartitions(PartitionRequest.getDefaultInstance());
                 this.numServers = response.getPartitionsCount();
                 
+	        serverStubs.clear();	
                 for (PartitionResponse.PartitionInfo info : response.getPartitionsList()) {
                     ManagedChannel channel = ManagedChannelBuilder.forTarget(info.getServerAddress())
                             .usePlaintext()
@@ -76,7 +79,7 @@ public class KVClient {
     public void put(String key, String value) {
         while (true) {
             try {
-                PutResponse response = getStubForKey(key).put(PutRequest.newBuilder()
+                PutResponse response = getStubForKey(key).withDeadlineAfter(2, TimeUnit.SECONDS).put(PutRequest.newBuilder()
                         .setKey(key).setValue(value).build());
                 System.out.println("PUT " + key + (response.getFound() ? " found" : " not_found"));
                 return;
@@ -89,7 +92,7 @@ public class KVClient {
     public void get(String key) {
         while (true) {
             try {
-                GetResponse response = getStubForKey(key).get(GetRequest.newBuilder()
+                GetResponse response = getStubForKey(key).withDeadlineAfter(2, TimeUnit.SECONDS).get(GetRequest.newBuilder()
                         .setKey(key).build());
                 System.out.println("GET " + key + " " + (response.getFound() ? response.getValue() : "null"));
                 return;
@@ -102,7 +105,7 @@ public class KVClient {
     public void delete(String key) {
         while (true) {
             try {
-                DeleteResponse response = getStubForKey(key).delete(DeleteRequest.newBuilder()
+                DeleteResponse response = getStubForKey(key).withDeadlineAfter(2, TimeUnit.SECONDS).delete(DeleteRequest.newBuilder()
                         .setKey(key).build());
                 System.out.println("DELETE " + key + (response.getFound() ? " found" : " not_found"));
                 return;
@@ -115,7 +118,7 @@ public class KVClient {
     public void swap(String key, String value) {
         while (true) {
             try {
-                SwapResponse response = getStubForKey(key).swap(SwapRequest.newBuilder()
+                SwapResponse response = getStubForKey(key).withDeadlineAfter(2, TimeUnit.SECONDS).swap(SwapRequest.newBuilder()
                         .setKey(key).setValue(value).build());
                 System.out.println("SWAP " + key + " " + (response.getFound() ? response.getOldValue() : "null"));
                 return;
@@ -126,21 +129,36 @@ public class KVClient {
     }
 
     public void scan(String startKey, String endKey) {
-        System.out.println("SCAN " + startKey + " " + endKey + " BEGIN");
-        for (KVStoreGrpc.KVStoreBlockingStub stub : serverStubs.values()) {
-            try {
-                Iterator<ScanResponse> responses = stub.scan(ScanRequest.newBuilder()
-                        .setStartKey(startKey).setEndKey(endKey).build());
+    while (true) {
+        try {
+            java.util.List<ScanResponse> all = new java.util.ArrayList<>();
+
+            for (KVStoreGrpc.KVStoreBlockingStub stub : serverStubs.values()) {
+                Iterator<ScanResponse> responses = stub
+                        .withDeadlineAfter(2, TimeUnit.SECONDS)
+                        .scan(ScanRequest.newBuilder()
+                                .setStartKey(startKey)
+                                .setEndKey(endKey)
+                                .build());
+
                 while (responses.hasNext()) {
-                    ScanResponse r = responses.next();
-                    System.out.println(r.getKey() + " " + r.getValue());
+                    all.add(responses.next());
                 }
-            } catch (StatusRuntimeException e) {
-                System.err.println("Warning: Scan partially failed on one partition: " + e.getStatus());
             }
-        }
-        System.out.println("SCAN END");
-    }
+
+            all.sort(java.util.Comparator.comparing(ScanResponse::getKey));
+
+            System.out.println("SCAN " + startKey + " " + endKey + " BEGIN");
+            for (ScanResponse r : all) {
+                System.out.println("  " + r.getKey() + " " + r.getValue());
+            }
+            System.out.println("SCAN END");
+            return;
+        } catch (StatusRuntimeException e) {
+            handleError(e);
+        	}
+    	}
+   }
 
     private void handleError(StatusRuntimeException e) {
         System.err.println("Server call failed (" + e.getStatus() + "), retrying in 1 second...");
